@@ -1,4 +1,4 @@
-# Seth Plunkett — HTML Email Signature (Apple Mail / iPhone)
+# Seth Plunkett — HTML Email Signature (Apple Mail — Mac & iPhone)
 
 Matches the MasTec Utility Services desktop signature (name, title, logo,
 divider, contact block), self-contained with the logo embedded as base64
@@ -38,14 +38,36 @@ HTML (as a base64 data URI), so nothing needs to load from the internet.
 
 ## Install on Mac (Apple Mail)
 
-1. Open `signature.html` in Safari.
-2. Select All → Copy.
-3. **Mail → Settings → Signatures**, select the `Seth.Plunkett@mastec.com`
-   account, create a new signature, click into the body, and Paste.
-4. Uncheck "Always match my default message font" so the signature keeps
-   its own fonts/colors.
+This is the same `signature.html` used for iPhone — nothing to redesign,
+just a different (easier) install path since the Mac lets you paste
+straight into the Mail app itself.
 
-Because Mail signatures sync via iCloud when **Settings → Mail →
-Signature** is set to "All Signatures" / synced, doing this once on Mac
-can also push it to your iPhone automatically — worth trying first if you
-have both devices.
+1. **Open `signature.html` in Safari** (double-click the file, or drag it
+   onto the Safari icon).
+2. Click anywhere in the signature block, then **Edit → Select All**
+   (⌘A) → **Edit → Copy** (⌘C).
+3. Open **Mail**, then from the menu bar: **Mail → Settings…** (called
+   **Mail → Preferences…** on macOS versions before Ventura) → **Signatures**
+   tab.
+4. In the left column, select the **Seth.Plunkett@mastec.com** account
+   (or the "All Signatures" list if you keep it there).
+5. Click the **+** button to add a new signature, give it a name (e.g.
+   "MasTec"), then click into the empty preview pane on the right and
+   **Paste** (⌘V).
+6. Uncheck **"Always match my default message font"** at the bottom —
+   otherwise Mail overrides the signature's fonts/colors with your default
+   compose font.
+7. Still on the Signatures tab, use the **"Choose Signature"** dropdown
+   under the account list to set this new signature as the default for
+   `Seth.Plunkett@mastec.com` (or set it to "At Random"/"In Sequential
+   Order" only if you want it mixed with others — for a single consistent
+   signature, pick it directly by name).
+8. Compose a new test email to confirm the logo, divider, bold name/title,
+   and the underlined website/email links all render correctly.
+
+**Bonus:** if **Settings → Mail → Signature** on your iPhone is not
+grayed out and shows the option, macOS Mail signatures set up this way
+sync via iCloud automatically — so doing it here first may save you the
+copy/paste on the phone entirely. If it doesn't sync (Apple doesn't always
+sync signatures across devices), just follow the iPhone steps above with
+the same file.
