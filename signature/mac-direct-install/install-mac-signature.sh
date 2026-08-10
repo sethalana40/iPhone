@@ -61,18 +61,57 @@
 set -eo pipefail
 shopt -s nullglob
 
-echo "Looking for your MasTec signature file under ~/Library ..."
+echo "Looking for your MasTec signature file (checking Mail-related folders only) ..."
 
-# Search all of ~/Library for *.mailsignature files directly, rather than
-# assuming a specific ~/Library/Mail/V<N>/MailData/Signatures folder layout
-# (that path has moved before across macOS/Mail versions and may move
-# again). This also lets us tell the difference between "genuinely not
-# there yet" and "blocked from seeing it" below.
+# Search *.mailsignature files, but scoped to known Mail-related folders
+# rather than a blind recursive scan of all of ~/Library -- on a home
+# folder with a big Photos library, Xcode caches, iCloud Drive, Time
+# Machine local snapshots, etc. (especially over a spinning HDD), scanning
+# the whole of ~/Library can take a very long time and looks like a hang.
+# This also lets us tell "genuinely not there yet" apart from "blocked
+# from seeing it" (macOS privacy protection) below.
 FIND_ERR="$(mktemp)"
+
+SEARCH_ROOTS=()
+[ -d "$HOME/Library/Mail" ] && SEARCH_ROOTS+=("$HOME/Library/Mail")
+[ -d "$HOME/Library/Containers/com.apple.mail" ] && SEARCH_ROOTS+=("$HOME/Library/Containers/com.apple.mail")
+for d in "$HOME/Library/Group Containers"/*mail*; do
+  [ -d "$d" ] && SEARCH_ROOTS+=("$d")
+done
+
 CANDIDATES=()
-while IFS= read -r f; do
-  CANDIDATES+=("$f")
-done < <(find "$HOME/Library" -type f -name "*.mailsignature" 2>"$FIND_ERR")
+for root in "${SEARCH_ROOTS[@]}"; do
+  while IFS= read -r f; do
+    CANDIDATES+=("$f")
+  done < <(find "$root" -type f -name "*.mailsignature" 2>>"$FIND_ERR")
+done
+
+# Only fall back to a full (slow) ~/Library scan if none of the known
+# Mail-related folders exist at all -- and bound it to 30s so it can't
+# hang the terminal indefinitely on a huge/slow home folder.
+if [ "${#SEARCH_ROOTS[@]}" -eq 0 ] && [ "${#CANDIDATES[@]}" -eq 0 ]; then
+  echo "No standard Mail folders found -- trying a broader (slower) search"
+  echo "under ~/Library, up to 30 seconds ..."
+  FIND_OUT="$(mktemp)"
+  ( find "$HOME/Library" -type f -name "*.mailsignature" >"$FIND_OUT" 2>>"$FIND_ERR" ) &
+  FPID=$!
+  SECONDS=0
+  while kill -0 "$FPID" 2>/dev/null; do
+    sleep 1
+    if [ "$SECONDS" -ge 30 ]; then
+      kill "$FPID" 2>/dev/null
+      echo "  (giving up on the broad scan after 30s -- your Mac's ~/Library"
+      echo "   is probably just large/slow; see README for the manual path"
+      echo "   instead: ~/Library/Mail/V<N>/MailData/Signatures/)"
+      break
+    fi
+  done
+  wait "$FPID" 2>/dev/null
+  while IFS= read -r f; do
+    CANDIDATES+=("$f")
+  done < "$FIND_OUT"
+  rm -f "$FIND_OUT"
+fi
 
 if [ "${#CANDIDATES[@]}" -eq 0 ]; then
   echo ""
