@@ -65,6 +65,36 @@ straight into the Mail app itself.
 8. Compose a new test email to confirm the logo, divider, bold name/title,
    and the underlined website/email links all render correctly.
 
+### If the logo shows huge and stacks above the text
+
+Apple Mail has a compose-time **"Image Size"** control (top-right of the
+new-message window, next to "Message Size") that overrides any CSS/HTML
+width & height on a pasted image — it re-scales every inserted image based
+on the image file's own native pixel dimensions, ignoring the sizing in
+the signature's markup. The first version of this file used a large source
+PNG sized down only with CSS, so Mail's "Actual Size" setting blew it back
+up to full resolution, which then pushed the layout into a stacked column
+instead of the logo + divider + text row.
+
+**Fixed:** the logo image embedded in `signature.html` is now physically
+resized to its true on-screen dimensions (200×77px) before being embedded,
+so there's no CSS/HTML sizing for Mail to ignore — "Actual Size" already
+*is* the correct size.
+
+If you set up the signature before this fix, the old (oversized) version
+is already saved in Mail and needs to be replaced, not just re-pasted on
+top:
+
+1. **Mail → Settings… → Signatures**, select the `Seth.Plunkett@mastec.com`
+   account, select your existing "Seth" signature, and delete it (**−**
+   button) or select all the text in its preview pane and delete the
+   content.
+2. Re-copy the *updated* `signature.html` from Safari (⌘A, ⌘C) and paste
+   it into a clean signature slot.
+3. If Mail still shows it oversized, check the **Image Size** dropdown in
+   a new compose window and set it to **Actual Size** (it can get stuck on
+   Small/Medium/Large from a previous message).
+
 **Bonus:** if **Settings → Mail → Signature** on your iPhone is not
 grayed out and shows the option, macOS Mail signatures set up this way
 sync via iCloud automatically — so doing it here first may save you the
