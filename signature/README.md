@@ -99,7 +99,14 @@ Everything you need is in `mac-direct-install/install-mac-signature.sh` —
 a single, self-contained script (the signature HTML is embedded inside it,
 nothing else to download).
 
-1. **First, create a placeholder signature the normal way** — follow the
+0. **Grant Terminal Full Disk Access first.** macOS treats `~/Library/Mail`
+   as protected user data (TCC privacy protection) — Terminal can't read
+   it by default even though it's your own account. Without this, the
+   script will report finding nothing at all. **System Settings → Privacy
+   & Security → Full Disk Access → +** → add Terminal.app (or iTerm2 /
+   whatever you run the script from) → make sure its toggle is on → fully
+   quit and reopen the terminal app.
+1. **Create a placeholder signature the normal way** — follow the
    GUI method above once (any content is fine, even just typing "Seth")
    so Mail creates the signature file and links it to
    `Seth.Plunkett@mastec.com`. This script only edits an *existing* file;

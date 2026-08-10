@@ -61,41 +61,43 @@
 set -eo pipefail
 shopt -s nullglob
 
-echo "Looking for your MasTec signature file under ~/Library/Mail ..."
+echo "Looking for your MasTec signature file under ~/Library ..."
 
-# Find every V<N>/MailData/Signatures directory (avoids assuming a specific
-# macOS/Mail version), then check each .mailsignature file's contents with
-# plain `grep -q` (portable across the BSD grep macOS ships and GNU grep).
-SIG_DIRS=("$HOME"/Library/Mail/V*/MailData/Signatures)
+# Search all of ~/Library for *.mailsignature files directly, rather than
+# assuming a specific ~/Library/Mail/V<N>/MailData/Signatures folder layout
+# (that path has moved before across macOS/Mail versions and may move
+# again). This also lets us tell the difference between "genuinely not
+# there yet" and "blocked from seeing it" below.
+FIND_ERR="$(mktemp)"
+CANDIDATES=()
+while IFS= read -r f; do
+  CANDIDATES+=("$f")
+done < <(find "$HOME/Library" -type f -name "*.mailsignature" 2>"$FIND_ERR")
 
-if [ "${#SIG_DIRS[@]}" -eq 0 ]; then
-  echo "No ~/Library/Mail/V<N>/MailData/Signatures folder matched the usual pattern."
-  echo "Trying a broader search under ~/Library/Mail ..."
-  SIG_DIRS=()
-  while IFS= read -r d; do
-    SIG_DIRS+=("$d")
-  done < <(find "$HOME/Library/Mail" -type d -name Signatures 2>/dev/null)
-fi
-
-if [ "${#SIG_DIRS[@]}" -eq 0 ]; then
+if [ "${#CANDIDATES[@]}" -eq 0 ]; then
   echo ""
-  echo "Still couldn't find any Mail 'Signatures' folder under ~/Library/Mail."
-  echo "Contents of ~/Library/Mail:"
-  ls -la "$HOME/Library/Mail" 2>/dev/null || echo "  (that folder doesn't exist at all)"
-  echo ""
-  echo "Make sure Mail.app has at least one account set up, and that you"
-  echo "created a placeholder 'Seth' signature under Mail > Settings >"
-  echo "Signatures first (see README.md) before running this script."
+  if grep -qi "operation not permitted" "$FIND_ERR" 2>/dev/null; then
+    echo "macOS blocked Terminal from reading ~/Library/Mail — this is its"
+    echo "privacy protection (TCC) for Mail data, not a real problem with the"
+    echo "script or your Mac. Fix it, then re-run this script:"
+    echo ""
+    echo "  1. Open System Settings → Privacy & Security → Full Disk Access."
+    echo "  2. Click the + button, then add your terminal app (Terminal.app,"
+    echo "     or iTerm2/whatever you're running this from) — it may already"
+    echo "     be listed with its toggle OFF, in which case just switch it ON."
+    echo "  3. Completely quit and reopen your terminal app (the permission"
+    echo "     only takes effect for new terminal sessions)."
+    echo "  4. Re-run: $0"
+  else
+    echo "No .mailsignature files found anywhere under ~/Library."
+    echo "Make sure Mail.app has at least one account set up, and that you"
+    echo "created a placeholder 'Seth' signature under Mail > Settings >"
+    echo "Signatures first (see README.md) before running this script."
+  fi
+  rm -f "$FIND_ERR"
   exit 1
 fi
-
-CANDIDATES=()
-for d in "${SIG_DIRS[@]}"; do
-  [ -d "$d" ] || continue
-  while IFS= read -r f; do
-    CANDIDATES+=("$f")
-  done < <(find "$d" -maxdepth 1 -type f -name "*.mailsignature" 2>/dev/null)
-done
+rm -f "$FIND_ERR"
 
 MATCHES=()
 if [ "${#CANDIDATES[@]}" -gt 0 ]; then
