@@ -52,7 +52,13 @@
 #   .mailsignature file it came from, relaunch Mail.
 # ============================================================================
 
-set -euo pipefail
+# NOTE: deliberately no `-u`/nounset. macOS's stock /bin/bash is the ancient
+# 3.2 (Apple froze it there for licensing reasons), which has a long-standing
+# bug where `"${array[@]}"` on a *zero-element* array throws "unbound
+# variable" under `set -u`, even though the array itself is perfectly
+# declared. Every array below is built defensively with manual length
+# checks instead of relying on nounset to catch mistakes.
+set -eo pipefail
 shopt -s nullglob
 
 echo "Looking for your MasTec signature file under ~/Library/Mail ..."
@@ -62,20 +68,43 @@ echo "Looking for your MasTec signature file under ~/Library/Mail ..."
 # plain `grep -q` (portable across the BSD grep macOS ships and GNU grep).
 SIG_DIRS=("$HOME"/Library/Mail/V*/MailData/Signatures)
 
+if [ "${#SIG_DIRS[@]}" -eq 0 ]; then
+  echo "No ~/Library/Mail/V<N>/MailData/Signatures folder matched the usual pattern."
+  echo "Trying a broader search under ~/Library/Mail ..."
+  SIG_DIRS=()
+  while IFS= read -r d; do
+    SIG_DIRS+=("$d")
+  done < <(find "$HOME/Library/Mail" -type d -name Signatures 2>/dev/null)
+fi
+
+if [ "${#SIG_DIRS[@]}" -eq 0 ]; then
+  echo ""
+  echo "Still couldn't find any Mail 'Signatures' folder under ~/Library/Mail."
+  echo "Contents of ~/Library/Mail:"
+  ls -la "$HOME/Library/Mail" 2>/dev/null || echo "  (that folder doesn't exist at all)"
+  echo ""
+  echo "Make sure Mail.app has at least one account set up, and that you"
+  echo "created a placeholder 'Seth' signature under Mail > Settings >"
+  echo "Signatures first (see README.md) before running this script."
+  exit 1
+fi
+
 CANDIDATES=()
 for d in "${SIG_DIRS[@]}"; do
   [ -d "$d" ] || continue
-  while IFS= read -r -d '' f; do
+  while IFS= read -r f; do
     CANDIDATES+=("$f")
-  done < <(find "$d" -maxdepth 1 -type f -name "*.mailsignature" -print0 2>/dev/null)
+  done < <(find "$d" -maxdepth 1 -type f -name "*.mailsignature" 2>/dev/null)
 done
 
 MATCHES=()
-for f in "${CANDIDATES[@]}"; do
-  if grep -q "Seth Plunkett" "$f" 2>/dev/null && grep -q "336-509-5815" "$f" 2>/dev/null; then
-    MATCHES+=("$f")
-  fi
-done
+if [ "${#CANDIDATES[@]}" -gt 0 ]; then
+  for f in "${CANDIDATES[@]}"; do
+    if grep -q "Seth Plunkett" "$f" 2>/dev/null && grep -q "336-509-5815" "$f" 2>/dev/null; then
+      MATCHES+=("$f")
+    fi
+  done
+fi
 
 if [ "${#MATCHES[@]}" -eq 0 ]; then
   echo "No matching .mailsignature file found."
