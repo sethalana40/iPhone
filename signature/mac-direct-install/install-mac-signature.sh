@@ -242,6 +242,16 @@ print("Wrote new signature content into:", target_path)
 PYEOF
 
 echo ""
+echo "Locking the file so Mail can't silently overwrite it on launch..."
+echo "(Mail.app has been observed re-saving its own signature files within"
+echo "seconds of starting up, stomping manual edits — this is what that's for.)"
+if chflags uchg "$TARGET" 2>/dev/null; then
+  echo "Locked."
+else
+  echo "Warning: couldn't set the lock flag (chflags uchg failed) — continuing"
+  echo "unlocked. Mail may still overwrite the file; see step 4 below."
+fi
+echo ""
 echo "Done. Now:"
 echo "  1. Reopen Mail."
 echo "  2. Mail > Settings… > Signatures — confirm the 'Seth' signature still shows"
@@ -249,5 +259,11 @@ echo "     (the preview pane there may still render it flattened/stacked — tha
 echo "     just a limitation of the preview widget, it does NOT reflect what gets"
 echo "     inserted into a real message)."
 echo "  3. Compose a new email and confirm the logo, divider, and text sit side by side."
-echo "  4. If it reverts later, iCloud signature sync likely overwrote it —"
-echo "     turn that sync off, then re-run this script."
+echo "  4. If Mail complains, shows a blank/broken signature, or anything looks"
+echo "     wrong, unlock and restore the backup immediately:"
+echo "       chflags nouchg \"$TARGET\""
+echo "       cp \"$BACKUP\" \"$TARGET\""
+echo "     then relaunch Mail again."
+echo "  5. If it looks right: leave it locked. To ever edit the signature via"
+echo "     Mail's own GUI again, you'll need to unlock it first with:"
+echo "       chflags nouchg \"$TARGET\""
