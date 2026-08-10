@@ -6,7 +6,9 @@ so it always displays — no external image hosting required.
 
 - `signature.html` — the finished, ready-to-use signature (open & copy this one).
 - `template.html` — same markup with `{{LOGO_SRC}}` unfilled, in case you need to swap the logo image later.
-- `assets/mastec-logo.png` — the source logo file used to build `signature.html`.
+- `assets/mastec-logo.png` — the original full-resolution source logo.
+- `assets/mastec-logo-small.png` — the logo pre-resized to 200×77px (the copy actually embedded in `signature.html`); see the Mac section below for why.
+- `mac-direct-install/install-mac-signature.sh` — one-shot script that installs the true side-by-side layout directly into macOS Mail's signature file, bypassing the GUI editor's stacked-layout limitation (see below).
 
 ## Install on iPhone (Mail app)
 
@@ -38,9 +40,23 @@ HTML (as a base64 data URI), so nothing needs to load from the internet.
 
 ## Install on Mac (Apple Mail)
 
-This is the same `signature.html` used for iPhone — nothing to redesign,
-just a different (easier) install path since the Mac lets you paste
-straight into the Mail app itself.
+⚠️ **Read this first:** Apple Mail's Signature preference pane (the normal
+copy/paste-into-the-GUI method below) does **not** support side-by-side
+layouts. It stores signatures as simplified rich text, not full HTML/CSS —
+so a table with the logo on the left and text on the right always gets
+flattened into a stacked column (logo on its own line, then the text block
+below), no matter how the HTML is written. This is a hard limitation of
+the editor itself, not a bug in this file.
+
+- If a **stacked** result (logo above the text) is fine, use the **GUI
+  method** just below — it's simpler and the safest way to get *something*
+  working. (Also good on any earlier stacked version's next paste!)
+- If you want the **exact desktop side-by-side layout**, skip to
+  **[True side-by-side layout](#true-side-by-side-layout-direct-file-install)**
+  below — it edits Mail's underlying signature file directly to get around
+  the GUI's limitation.
+
+### GUI method (paste into Mail's Signature pane — always stacks)
 
 1. **Open `signature.html` in Safari** (double-click the file, or drag it
    onto the Safari icon).
@@ -59,41 +75,75 @@ straight into the Mail app itself.
    compose font.
 7. Still on the Signatures tab, use the **"Choose Signature"** dropdown
    under the account list to set this new signature as the default for
-   `Seth.Plunkett@mastec.com` (or set it to "At Random"/"In Sequential
-   Order" only if you want it mixed with others — for a single consistent
-   signature, pick it directly by name).
-8. Compose a new test email to confirm the logo, divider, bold name/title,
-   and the underlined website/email links all render correctly.
+   `Seth.Plunkett@mastec.com`.
+8. Compose a new test email — logo will appear above the text block, not
+   beside it (see caveat above). Fonts, colors, and the underlined
+   website/email links should still all be correct.
 
-### If the logo shows huge and stacks above the text
+The logo image is also pre-sized to its true on-screen dimensions
+(200×77px) rather than scaled with CSS — this matters because Mail's
+compose window has its own **"Image Size"** control (top-right, next to
+"Message Size") that re-scales any pasted image based on the image file's
+*own* pixel dimensions, ignoring width/height set in HTML/CSS. Baking the
+real size into the file itself means Mail's "Actual Size" setting already
+shows it correctly, instead of blowing it back up to a huge 2281×877.
 
-Apple Mail has a compose-time **"Image Size"** control (top-right of the
-new-message window, next to "Message Size") that overrides any CSS/HTML
-width & height on a pasted image — it re-scales every inserted image based
-on the image file's own native pixel dimensions, ignoring the sizing in
-the signature's markup. The first version of this file used a large source
-PNG sized down only with CSS, so Mail's "Actual Size" setting blew it back
-up to full resolution, which then pushed the layout into a stacked column
-instead of the logo + divider + text row.
+### True side-by-side layout (direct file install)
 
-**Fixed:** the logo image embedded in `signature.html` is now physically
-resized to its true on-screen dimensions (200×77px) before being embedded,
-so there's no CSS/HTML sizing for Mail to ignore — "Actual Size" already
-*is* the correct size.
+This gets the exact desktop-matching side-by-side layout (logo | divider |
+name/title/contact) by editing Mail's own signature file on disk directly,
+bypassing the Signature pane's editor entirely — since that file *is* real
+HTML, Mail renders it correctly even though its GUI editor can't create it.
 
-If you set up the signature before this fix, the old (oversized) version
-is already saved in Mail and needs to be replaced, not just re-pasted on
-top:
+Everything you need is in `mac-direct-install/install-mac-signature.sh` —
+a single, self-contained script (the signature HTML is embedded inside it,
+nothing else to download).
 
-1. **Mail → Settings… → Signatures**, select the `Seth.Plunkett@mastec.com`
-   account, select your existing "Seth" signature, and delete it (**−**
-   button) or select all the text in its preview pane and delete the
-   content.
-2. Re-copy the *updated* `signature.html` from Safari (⌘A, ⌘C) and paste
-   it into a clean signature slot.
-3. If Mail still shows it oversized, check the **Image Size** dropdown in
-   a new compose window and set it to **Actual Size** (it can get stuck on
-   Small/Medium/Large from a previous message).
+1. **First, create a placeholder signature the normal way** — follow the
+   GUI method above once (any content is fine, even just typing "Seth")
+   so Mail creates the signature file and links it to
+   `Seth.Plunkett@mastec.com`. This script only edits an *existing* file;
+   it won't create the account association for you.
+2. **Quit Mail completely** (**Mail → Quit Mail**, or ⌘Q — not just
+   closing the window).
+3. **Check for iCloud Mail signature sync.** If you sync Mail settings via
+   iCloud, a sync pass can silently revert this script's changes back to
+   the old GUI version. Look under **System Settings → [your name] →
+   iCloud → Saved to iCloud → Mail**, and consider turning it off until
+   you've confirmed the new signature looks right — then it's safe to turn
+   back on, since the synced copy will now match what's in Mail.
+4. Get `mac-direct-install/install-mac-signature.sh` onto your Mac (open
+   the raw file link from this branch on GitHub in Safari and Save As…,
+   or AirDrop it, or `git clone` the repo).
+5. Open **Terminal**, then:
+   ```
+   chmod +x ~/Downloads/install-mac-signature.sh
+   ~/Downloads/install-mac-signature.sh
+   ```
+   (adjust the path if you saved it somewhere other than Downloads)
+6. Read the script's output:
+   - It searches `~/Library/Mail/V*/MailData/Signatures` for the
+     `.mailsignature` file containing "Seth Plunkett" and the phone
+     number, to make sure it edits the right one.
+   - It backs up the original file next to itself first
+     (`<name>.mailsignature.bak.<timestamp>`) before changing anything.
+   - It replaces only the inner content, leaving Mail's own file wrapper
+     intact.
+   - If it finds **zero** matches, you likely skipped step 1 (or quit
+     without saving the placeholder signature) — go back and do that
+     first.
+   - If it finds **more than one** match, delete the extra/duplicate
+     signature in Mail's Signatures pane first so only one remains, then
+     re-run.
+7. **Reopen Mail** and compose a new test email — the logo, divider, and
+   text should now sit side by side, matching the desktop signature
+   exactly. (The Signatures *preference pane's* own preview may still show
+   it stacked — that preview widget has the same rich-text limitation
+   described above; it doesn't reflect what actually gets inserted into a
+   real message, so trust a real compose window over that preview.)
+
+**To undo:** quit Mail, copy the `.bak.<timestamp>` file back over the
+`.mailsignature` file it came from, relaunch Mail.
 
 **Bonus:** if **Settings → Mail → Signature** on your iPhone is not
 grayed out and shows the option, macOS Mail signatures set up this way
